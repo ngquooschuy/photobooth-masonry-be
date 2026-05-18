@@ -189,15 +189,15 @@ app.delete("/api/images/:publicId", async (req, res) => {
 
 app.post('/confirm', async (req, res) => {
   try {
-    const { name, phone } = req.body;
+    const { isConfirm } = req.body;
 
     /**
      * Validate
      */
-    if (!name || !phone) {
+    if (!isConfirm) {
       return res.status(400).json({
         success: false,
-        message: 'Missing name or phone'
+        message: 'isConfirm is required'
       });
     }
 
@@ -207,7 +207,7 @@ app.post('/confirm', async (req, res) => {
     await transporter.sendMail({
       from: `"Anniversary Event" <${process.env.EMAIL_USER}>`,
       to: process.env.EMAIL_TO_1,
-      subject: `${name} đã xác nhận tham gia 💌`,
+      subject: `Có người đã xác nhận tham gia 💌`,
       html: `
         <div
   style="
@@ -284,7 +284,7 @@ app.post('/confirm', async (req, res) => {
     await transporter.sendMail({
       from: `"Anniversary Event" <${process.env.EMAIL_USER}>`,
       to: process.env.EMAIL_TO_2,
-      subject: `${name} đã xác nhận tham gia 💌`,
+      subject: `Có người đã xác nhận tham gia 💌`,
       html: `
             <div
   style="
