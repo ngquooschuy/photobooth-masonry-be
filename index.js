@@ -3,6 +3,7 @@ const express = require("express");
 const cors = require("cors");
 const multer = require("multer");
 const { v2: cloudinary } = require("cloudinary");
+const nodemailer = require('nodemailer');
 
 const app = express();
 app.use(cors({ origin: true }));
@@ -14,6 +15,14 @@ cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
+  }
 });
 
 // Multer: dùng bộ nhớ để đẩy buffer lên Cloudinary qua upload_stream
@@ -177,6 +186,177 @@ app.delete("/api/images/:publicId", async (req, res) => {
     res.status(500).json({ error: e.message || "Delete failed" });
   }
 });
+
+app.post('/confirm', async (req, res) => {
+  try {
+    const { name, phone } = req.body;
+
+    /**
+     * Validate
+     */
+    if (!name || !phone) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing name or phone'
+      });
+    }
+
+    /**
+     * Send email to person 1
+     */
+    await transporter.sendMail({
+      from: `"Anniversary Event" <${process.env.EMAIL_USER}>`,
+      to: process.env.EMAIL_TO_1,
+      subject: `${name} đã xác nhận tham gia 💌`,
+      html: `
+        <div
+  style="
+    font-family: 'Segoe UI', Arial, sans-serif;
+    max-width: 520px;
+    margin: auto;
+    background: linear-gradient(135deg, #fff7f9 0%, #fffdfd 100%);
+    border-radius: 24px;
+    padding: 36px 32px;
+    color: #2d2d2d;
+    border: 1px solid #ffd9e2;
+    box-shadow: 0 10px 35px rgba(255, 120, 160, 0.12);
+  "
+>
+  <div
+    style="
+      width: 64px;
+      height: 64px;
+      line-height: 64px;
+      text-align: center;
+      font-size: 30px;
+      border-radius: 50%;
+      margin: 0 auto 20px;
+      background: linear-gradient(135deg, #ff7eb3, #ffb6c9);
+      color: white;
+      box-shadow: 0 6px 18px rgba(255, 126, 179, 0.35);
+    "
+  >
+    💌
+  </div>
+
+  <h2
+    style="
+      margin: 0 0 12px;
+      text-align: center;
+      font-size: 28px;
+      color: #ff4f87;
+      font-weight: 700;
+    "
+  >
+    Đồng chí mdukiu đã xác nhận tham gia  ✨
+  </h2>
+
+  <p
+    style="
+      text-align: center;
+      margin: 0 0 28px;
+      color: #666;
+      font-size: 15px;
+      line-height: 1.6;
+    "
+  >
+    Một thông báo nhỏ xinh dành riêng cho anh 💕
+  </p>
+
+  <p
+    style="
+      margin-top: 28px;
+      text-align: center;
+      font-size: 14px;
+      color: #888;
+      line-height: 1.7;
+    "
+  >
+    Chúc hai đứa mình sẽ luôn có thật nhiều khoảnh khắc đáng nhớ cùng nhau 🌷
+  </p>
+</div>
+      `
+    });
+
+    /**
+     * Send email to person 2
+     */
+    await transporter.sendMail({
+      from: `"Anniversary Event" <${process.env.EMAIL_USER}>`,
+      to: process.env.EMAIL_TO_2,
+      subject: `${name} đã xác nhận tham gia 💌`,
+      html: `
+            <div
+  style="
+    font-family: 'Segoe UI', Arial, sans-serif;
+    max-width: 520px;
+    margin: auto;
+    background: linear-gradient(135deg, #fff7f9 0%, #fffdfd 100%);
+    border-radius: 24px;
+    padding: 36px 32px;
+    color: #2d2d2d;
+    border: 1px solid #ffd9e2;
+    box-shadow: 0 10px 35px rgba(255, 120, 160, 0.12);
+  "
+>
+  <div
+    style="
+      width: 64px;
+      height: 64px;
+      line-height: 64px;
+      text-align: center;
+      font-size: 30px;
+      border-radius: 50%;
+      margin: 0 auto 20px;
+      background: linear-gradient(135deg, #ff7eb3, #ffb6c9);
+      color: white;
+      box-shadow: 0 6px 18px rgba(255, 126, 179, 0.35);
+    "
+  >
+    💌
+  </div>
+
+  <h2
+    style="
+      margin: 0 0 12px;
+      text-align: center;
+      font-size: 28px;
+      color: #ff4f87;
+      font-weight: 700;
+    "
+  >
+    Đồng chí mdukiu đã xác nhận tham gia  ✨
+  </h2>
+
+  <p
+    style="
+      text-align: center;
+      margin: 0 0 28px;
+      color: #666;
+      font-size: 15px;
+      line-height: 1.6;
+    "
+  >
+    Hẹn gặp đồng chí vào ngày mai💕
+  </p>
+</div>
+      `
+    });
+
+    return res.json({
+      success: true,
+      message: 'Confirmation sent successfully'
+    });
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
 
 const port = Number(process.env.PORT) || 4000;
 
