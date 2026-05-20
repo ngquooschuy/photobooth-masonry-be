@@ -207,7 +207,7 @@ app.post('/confirm', async (req, res) => {
     await transporter.sendMail({
       from: `"Anniversary Event" <${process.env.EMAIL_USER}>`,
       to: process.env.EMAIL_TO_1,
-      subject: `Có người đã xác nhận tham gia 💌`,
+      subject: `Emiu đã xác nhận tham gia 💌`,
       html: `
         <div
   style="
@@ -284,7 +284,7 @@ app.post('/confirm', async (req, res) => {
     await transporter.sendMail({
       from: `"Anniversary Event" <${process.env.EMAIL_USER}>`,
       to: process.env.EMAIL_TO_2,
-      subject: `Có người đã xác nhận tham gia 💌`,
+      subject: `Emiu đã xác nhận tham gia 💌`,
       html: `
             <div
   style="
@@ -337,7 +337,7 @@ app.post('/confirm', async (req, res) => {
       line-height: 1.6;
     "
   >
-    Hẹn gặp đồng chí vào ngày mai💕
+    Hẹn gặp đồng chí vào tối nay💕
   </p>
 </div>
       `
