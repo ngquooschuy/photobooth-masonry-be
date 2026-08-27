@@ -70,7 +70,7 @@ async function getOrCreateState() {
   return state;
 }
 
-// GET /api/smoke/state
+// GET /api/state hoặc /api/smoke/state
 async function getState(req, res) {
   try {
     let state = await SmokeAppState.findOne().lean();
@@ -84,7 +84,54 @@ async function getState(req, res) {
   }
 }
 
-// POST /api/smoke/record (Ghi nhận 1 lần hút)
+// GET /api/timeline hoặc /api/smoke/timeline
+async function getTimeline(req, res) {
+  try {
+    const state = await getOrCreateState();
+    const relapses = state.relapses || [];
+    const totalSmoked = relapses.length;
+    const hp = Math.max(0, 100 - totalSmoked * 10);
+
+    const reasonLabels = {
+      STRESS: 'Căng thẳng / Áp lực',
+      AFTER_MEAL: 'Sau khi ăn no',
+      SOCIAL: 'Tiệc tùng / Bạn bè rủ',
+      BOREDOM: 'Buồn chán / Trống rỗng',
+      HABIT: 'Thói quen vô thức',
+      COFFEE: 'Uống cà phê'
+    };
+
+    // Format events chronologically (newest first)
+    const timeline = relapses
+      .map((item, index) => {
+        const itemDate = new Date(item.time);
+        return {
+          id: item.id || `relapse_${index}`,
+          type: 'SMOKE',
+          title: 'Hút 1 điếu thuốc',
+          reason: reasonLabels[item.reason] || item.reason || 'Không rõ lý do',
+          rawReason: item.reason,
+          time: item.time,
+          formattedTime: itemDate.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+          formattedDate: itemDate.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+          hpImpact: -10,
+          hpText: '-10% Máu'
+        };
+      })
+      .reverse();
+
+    res.json({
+      totalSmoked,
+      hp,
+      cravingsResisted: state.cravingsResisted || 0,
+      timeline
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}
+
+// POST /api/smoke/record
 async function recordSmoke(req, res) {
   try {
     const { reason = "STRESS" } = req.body;
@@ -118,14 +165,13 @@ async function recordSmoke(req, res) {
   }
 }
 
-// POST /api/smoke/craving-resisted (Vượt qua cơn thèm SOS 3 phút)
+// POST /api/smoke/craving-resisted
 async function recordCravingResisted(req, res) {
   try {
     const state = await getOrCreateState();
     state.cravingsResisted += 1;
     state.expBonus += 10000;
 
-    // Tự động đánh dấu hoàn thành nhiệm vụ q2
     state.quests = (state.quests || []).map((q) =>
       q.id === "q2" ? { ...q, completed: true } : q
     );
@@ -137,7 +183,7 @@ async function recordCravingResisted(req, res) {
   }
 }
 
-// POST /api/smoke/quests/:questId/claim (Nhận thưởng nhiệm vụ)
+// POST /api/smoke/quests/:questId/claim
 async function claimQuest(req, res) {
   try {
     const { questId } = req.params;
@@ -161,7 +207,7 @@ async function claimQuest(req, res) {
   }
 }
 
-// PUT /api/smoke/config (Cập nhật cài đặt)
+// PUT /api/smoke/config
 async function updateConfig(req, res) {
   try {
     const state = await getOrCreateState();
@@ -173,7 +219,7 @@ async function updateConfig(req, res) {
   }
 }
 
-// POST /api/smoke/reset (Reset toàn bộ dữ liệu về TRẮNG từ đầu)
+// POST /api/smoke/reset
 async function resetState(req, res) {
   try {
     await SmokeAppState.deleteMany({});
@@ -186,6 +232,7 @@ async function resetState(req, res) {
 
 module.exports = {
   getState,
+  getTimeline,
   recordSmoke,
   recordCravingResisted,
   claimQuest,
