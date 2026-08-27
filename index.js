@@ -13,6 +13,7 @@ app.use(cors({ origin: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use("/api/smoke", smokeRoutes);
+app.use("/api", smokeRoutes);
 
 // Cloudinary config
 cloudinary.config({
