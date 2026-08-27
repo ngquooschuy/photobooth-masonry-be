@@ -1,7 +1,7 @@
 const {
   SmokeAppState,
   INITIAL_QUESTS,
-  generateInitialActivityCalendar
+  generateCleanActivityCalendar
 } = require("../models/SmokeAppState");
 
 function checkAndRolloverDay(state) {
@@ -10,7 +10,7 @@ function checkAndRolloverDay(state) {
   const today = new Date();
 
   if (!state.activityCalendar || state.activityCalendar.length === 0) {
-    state.activityCalendar = generateInitialActivityCalendar();
+    state.activityCalendar = generateCleanActivityCalendar();
   }
 
   const todayEntry = state.activityCalendar.find((d) => d.date === todayStr);
@@ -40,33 +40,37 @@ function checkAndRolloverDay(state) {
   return state;
 }
 
+function getInitialCleanStateData() {
+  return {
+    startTime: Date.now(),
+    todayCount: 0,
+    cravingsResisted: 0,
+    expBonus: 0,
+    config: {
+      costPerPack: 35000,
+      cigsPerPack: 20,
+      cigsPerDayOld: 15,
+      soundEnabled: true,
+      hapticsEnabled: true,
+      nickname: "HIỆP SĨ PHỔI"
+    },
+    quests: INITIAL_QUESTS.map((q) => ({ ...q, completed: false, claimed: false })),
+    relapses: [],
+    activityCalendar: generateCleanActivityCalendar()
+  };
+}
+
 async function getOrCreateState() {
   let state = await SmokeAppState.findOne();
   if (!state) {
-    state = await SmokeAppState.create({
-      startTime: Date.now() - (3 * 86400 + 14 * 3600 + 42 * 60 + 59) * 1000,
-      todayCount: 0,
-      cravingsResisted: 3,
-      expBonus: 150000,
-      config: {
-        costPerPack: 35000,
-        cigsPerPack: 20,
-        cigsPerDayOld: 15,
-        soundEnabled: true,
-        hapticsEnabled: true,
-        nickname: "HIỆP SĨ PHỔI"
-      },
-      quests: INITIAL_QUESTS,
-      relapses: [],
-      activityCalendar: generateInitialActivityCalendar()
-    });
+    state = await SmokeAppState.create(getInitialCleanStateData());
   }
 
   checkAndRolloverDay(state);
   return state;
 }
 
-// GET /api/smoke/state - Fast query
+// GET /api/smoke/state
 async function getState(req, res) {
   try {
     let state = await SmokeAppState.findOne().lean();
@@ -80,7 +84,7 @@ async function getState(req, res) {
   }
 }
 
-// POST /api/smoke/record
+// POST /api/smoke/record (Ghi nhận 1 lần hút)
 async function recordSmoke(req, res) {
   try {
     const { reason = "STRESS" } = req.body;
@@ -114,13 +118,14 @@ async function recordSmoke(req, res) {
   }
 }
 
-// POST /api/smoke/craving-resisted
+// POST /api/smoke/craving-resisted (Vượt qua cơn thèm SOS 3 phút)
 async function recordCravingResisted(req, res) {
   try {
     const state = await getOrCreateState();
     state.cravingsResisted += 1;
     state.expBonus += 10000;
 
+    // Tự động đánh dấu hoàn thành nhiệm vụ q2
     state.quests = (state.quests || []).map((q) =>
       q.id === "q2" ? { ...q, completed: true } : q
     );
@@ -132,7 +137,7 @@ async function recordCravingResisted(req, res) {
   }
 }
 
-// POST /api/smoke/quests/:questId/claim
+// POST /api/smoke/quests/:questId/claim (Nhận thưởng nhiệm vụ)
 async function claimQuest(req, res) {
   try {
     const { questId } = req.params;
@@ -156,7 +161,7 @@ async function claimQuest(req, res) {
   }
 }
 
-// PUT /api/smoke/config
+// PUT /api/smoke/config (Cập nhật cài đặt)
 async function updateConfig(req, res) {
   try {
     const state = await getOrCreateState();
@@ -168,11 +173,11 @@ async function updateConfig(req, res) {
   }
 }
 
-// POST /api/smoke/reset
+// POST /api/smoke/reset (Reset toàn bộ dữ liệu về TRẮNG từ đầu)
 async function resetState(req, res) {
   try {
     await SmokeAppState.deleteMany({});
-    const freshState = await getOrCreateState();
+    const freshState = await SmokeAppState.create(getInitialCleanStateData());
     res.json(freshState);
   } catch (error) {
     res.status(500).json({ error: error.message });

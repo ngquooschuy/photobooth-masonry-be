@@ -7,7 +7,7 @@ const INITIAL_QUESTS = [
     desc: "Dập tắt ngọn lửa nicotine tức thì bằng nước tinh khiết.",
     exp: 5000,
     hp: 5,
-    completed: true,
+    completed: false,
     claimed: false,
     icon: "water_drop"
   },
@@ -17,7 +17,7 @@ const INITIAL_QUESTS = [
     desc: "Hoàn thành 1 lượt hít thở 8-bit để hạ xung thần kinh.",
     exp: 10000,
     hp: 10,
-    completed: true,
+    completed: false,
     claimed: false,
     icon: "air"
   },
@@ -27,8 +27,8 @@ const INITIAL_QUESTS = [
     desc: "Không chạm 1 điếu thuốc trong 24 giờ liên tiếp.",
     exp: 25000,
     hp: 15,
-    completed: true,
-    claimed: true,
+    completed: false,
+    claimed: false,
     icon: "verified"
   },
   {
@@ -37,7 +37,7 @@ const INITIAL_QUESTS = [
     desc: "Dành tiền mua trang bị thực tế thay vì đốt khói.",
     exp: 30000,
     hp: 10,
-    completed: true,
+    completed: false,
     claimed: false,
     icon: "savings"
   },
@@ -53,28 +53,22 @@ const INITIAL_QUESTS = [
   }
 ];
 
-function generateInitialActivityCalendar() {
-  const days = [];
+function generateCleanActivityCalendar() {
   const today = new Date();
   const dayNames = ["Chủ Nhật", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
+  const dateStr = today.toISOString().split("T")[0];
 
-  for (let i = 59; i >= 0; i--) {
-    const d = new Date(today);
-    d.setDate(d.getDate() - i);
-    const dateStr = d.toISOString().split("T")[0];
-    const isToday = i === 0;
-
-    days.push({
+  return [
+    {
       date: dateStr,
       count: 0,
       level: "clean",
-      dayName: dayNames[d.getDay()],
-      fullDayName: `${dayNames[d.getDay()]}, ${d.getDate()}/${d.getMonth() + 1}`,
-      isToday,
+      dayName: dayNames[today.getDay()],
+      fullDayName: `${dayNames[today.getDay()]}, ${today.getDate()}/${today.getMonth() + 1}`,
+      isToday: true,
       isFuture: false
-    });
-  }
-  return days;
+    }
+  ];
 }
 
 const SmokeAppStateSchema = new mongoose.Schema(
@@ -101,7 +95,7 @@ const SmokeAppStateSchema = new mongoose.Schema(
     },
     activityCalendar: {
       type: Array,
-      default: generateInitialActivityCalendar
+      default: generateCleanActivityCalendar
     }
   },
   { timestamps: true }
@@ -112,5 +106,5 @@ const SmokeAppState = mongoose.models.SmokeAppState || mongoose.model("SmokeAppS
 module.exports = {
   SmokeAppState,
   INITIAL_QUESTS,
-  generateInitialActivityCalendar
+  generateCleanActivityCalendar
 };
