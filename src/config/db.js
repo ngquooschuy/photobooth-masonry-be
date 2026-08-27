@@ -6,34 +6,32 @@ if (!cached) {
 }
 
 async function connectDB() {
-  if (cached.conn) {
+  if (cached.conn && cached.conn.connection.readyState === 1) {
     return cached.conn;
   }
 
-  const uri = process.env.MONGODB_URI;
-  if (!uri) {
-    throw new Error("MONGODB_URI is not defined in environment variables");
-  }
-
   if (!cached.promise) {
-    const opts = {
-      bufferCommands: false,
-      serverSelectionTimeoutMS: 5000
-    };
+    const uri = process.env.MONGODB_URI;
+    if (!uri) {
+      throw new Error("MONGODB_URI is missing");
+    }
 
-    cached.promise = mongoose.connect(uri, opts).then((m) => {
-      console.log("✅ Connected to MongoDB Atlas");
+    cached.promise = mongoose.connect(uri, {
+      maxPoolSize: 10,
+      minPoolSize: 1,
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 30000,
+      family: 4 // Force IPv4 to avoid IPv6 DNS timeout delays
+    }).then((m) => {
+      console.log("✅ MongoDB Connected (Optimized Pool)");
       return m;
+    }).catch((err) => {
+      cached.promise = null;
+      throw err;
     });
   }
 
-  try {
-    cached.conn = await cached.promise;
-  } catch (e) {
-    cached.promise = null;
-    throw e;
-  }
-
+  cached.conn = await cached.promise;
   return cached.conn;
 }
 

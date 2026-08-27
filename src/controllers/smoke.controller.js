@@ -4,24 +4,20 @@ const {
   generateInitialActivityCalendar
 } = require("../models/SmokeAppState");
 
-// Helper to check and rollover to today if date changed
 function checkAndRolloverDay(state) {
   const todayStr = new Date().toISOString().split("T")[0];
   const dayNames = ["Chủ Nhật", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
   const today = new Date();
 
-  // Ensure activity calendar exists
   if (!state.activityCalendar || state.activityCalendar.length === 0) {
     state.activityCalendar = generateInitialActivityCalendar();
   }
 
-  // Check if today exists in calendar
-  let todayEntry = state.activityCalendar.find((d) => d.date === todayStr);
+  const todayEntry = state.activityCalendar.find((d) => d.date === todayStr);
 
   if (!todayEntry) {
-    // Add today to calendar and mark older days as not today
     state.activityCalendar = state.activityCalendar.map((d) => ({ ...d, isToday: false }));
-    todayEntry = {
+    state.activityCalendar.push({
       date: todayStr,
       count: 0,
       level: "clean",
@@ -29,16 +25,12 @@ function checkAndRolloverDay(state) {
       fullDayName: `${dayNames[today.getDay()]}, ${today.getDate()}/${today.getMonth() + 1}`,
       isToday: true,
       isFuture: false
-    };
-    state.activityCalendar.push(todayEntry);
-    // Keep max 60 days
+    });
     if (state.activityCalendar.length > 60) {
       state.activityCalendar = state.activityCalendar.slice(state.activityCalendar.length - 60);
     }
-    // Reset today count for the new day
     state.todayCount = 0;
   } else {
-    // Make sure isToday flags are strictly accurate
     state.activityCalendar = state.activityCalendar.map((d) => ({
       ...d,
       isToday: d.date === todayStr
@@ -70,26 +62,25 @@ async function getOrCreateState() {
     });
   }
 
-  // Auto rollover day if accessed on a new day
-  const modified = checkAndRolloverDay(state);
-  if (modified.isModified && modified.isModified()) {
-    await state.save();
-  }
-
+  checkAndRolloverDay(state);
   return state;
 }
 
-// GET /api/smoke/state
+// GET /api/smoke/state - Fast query
 async function getState(req, res) {
   try {
-    const state = await getOrCreateState();
+    let state = await SmokeAppState.findOne().lean();
+    if (!state) {
+      const created = await getOrCreateState();
+      return res.json(created);
+    }
     res.json(state);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 }
 
-// POST /api/smoke/record (Ghi nhận 1 lần hút)
+// POST /api/smoke/record
 async function recordSmoke(req, res) {
   try {
     const { reason = "STRESS" } = req.body;
@@ -109,7 +100,7 @@ async function recordSmoke(req, res) {
     });
 
     state.todayCount = newCount;
-    state.startTime = Date.now(); // reset streak timer
+    state.startTime = Date.now();
     state.relapses.push({
       id: `r_${Date.now()}`,
       time: new Date().toISOString(),
@@ -123,14 +114,13 @@ async function recordSmoke(req, res) {
   }
 }
 
-// POST /api/smoke/craving-resisted (Vượt qua cơn thèm SOS 3 phút)
+// POST /api/smoke/craving-resisted
 async function recordCravingResisted(req, res) {
   try {
     const state = await getOrCreateState();
     state.cravingsResisted += 1;
     state.expBonus += 10000;
 
-    // Auto complete quest q2 (Hít thở sâu 3 phút SOS)
     state.quests = (state.quests || []).map((q) =>
       q.id === "q2" ? { ...q, completed: true } : q
     );
@@ -142,7 +132,7 @@ async function recordCravingResisted(req, res) {
   }
 }
 
-// POST /api/smoke/quests/:questId/claim (Nhận thưởng nhiệm vụ)
+// POST /api/smoke/quests/:questId/claim
 async function claimQuest(req, res) {
   try {
     const { questId } = req.params;
@@ -166,7 +156,7 @@ async function claimQuest(req, res) {
   }
 }
 
-// PUT /api/smoke/config (Cập nhật cài đặt cấu hình)
+// PUT /api/smoke/config
 async function updateConfig(req, res) {
   try {
     const state = await getOrCreateState();
@@ -178,7 +168,7 @@ async function updateConfig(req, res) {
   }
 }
 
-// POST /api/smoke/reset (Reset toàn bộ dữ liệu)
+// POST /api/smoke/reset
 async function resetState(req, res) {
   try {
     await SmokeAppState.deleteMany({});
