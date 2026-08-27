@@ -1,0 +1,164 @@
+{
+  "info": {
+    "_postman_id": "8f3b6c2d-9481-4927-b391-748430bfa512",
+    "name": "Smoke Tracking API",
+    "description": "Postman Collection for Smoke Tracking Backend API (Express + MongoDB)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:4000",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Lấy toàn bộ trạng thái (Get State)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/smoke/state",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "smoke",
+            "state"
+          ]
+        },
+        "description": "Lấy toàn bộ dữ liệu trạng thái hiện tại từ MongoDB (tự động tạo mới nếu DB chưa có)."
+      },
+      "response": []
+    },
+    {
+      "name": "2. Ghi nhận 1 lần hút (Record Smoke)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"reason\": \"STRESS\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/smoke/record",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "smoke",
+            "record"
+          ]
+        },
+        "description": "Ghi nhận 1 lần hút thuốc: Tăng số điếu hôm nay, reset đồng hồ cai thuốc, lưu lý do vào danh sách relapses và cập nhật ma trận hoạt động."
+      },
+      "response": []
+    },
+    {
+      "name": "3. Vượt qua cơn thèm (Craving Resisted - SOS Mode)",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/smoke/craving-resisted",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "smoke",
+            "craving-resisted"
+          ]
+        },
+        "description": "Ghi nhận vượt qua cơn thèm sau khi hoàn thành bài thở SOS 3 phút: +1 lượt kiềm chế, +10.000 EXP, hoàn thành nhiệm vụ q2."
+      },
+      "response": []
+    },
+    {
+      "name": "4. Nhận thưởng nhiệm vụ (Claim Quest)",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/smoke/quests/:questId/claim",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "smoke",
+            "quests",
+            ":questId",
+            "claim"
+          ],
+          "variable": [
+            {
+              "key": "questId",
+              "value": "q1",
+              "description": "ID của nhiệm vụ (vd: q1, q2, q3, q4, q5)"
+            }
+          ]
+        },
+        "description": "Nhận thưởng nhiệm vụ đã hoàn thành: Chuyển claimed thành true và cộng EXP thưởng."
+      },
+      "response": []
+    },
+    {
+      "name": "5. Cập nhật cấu hình (Update Config)",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nickname\": \"HIỆP SĨ PHỔI\",\n  \"costPerPack\": 35000,\n  \"cigsPerPack\": 20,\n  \"cigsPerDayOld\": 15,\n  \"soundEnabled\": true,\n  \"hapticsEnabled\": true\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/smoke/config",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "smoke",
+            "config"
+          ]
+        },
+        "description": "Cập nhật các thông số thiết lập của người dùng."
+      },
+      "response": []
+    },
+    {
+      "name": "6. Reset toàn bộ dữ liệu (Reset State)",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/smoke/reset",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "smoke",
+            "reset"
+          ]
+        },
+        "description": "Xóa trắng dữ liệu cũ và khởi tạo lại state mặc định ban đầu."
+      },
+      "response": []
+    }
+  ]
+}
