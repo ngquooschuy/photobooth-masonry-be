@@ -1,4 +1,5 @@
 const express = require("express");
+const { connectDB } = require("../config/db");
 const {
   getState,
   recordSmoke,
@@ -9,6 +10,20 @@ const {
 } = require("../controllers/smoke.controller");
 
 const router = express.Router();
+
+// Middleware: ensure DB connection before executing controllers
+router.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (error) {
+    console.error("Database connection error:", error.message);
+    return res.status(500).json({
+      error: "Không thể kết nối đến MongoDB Atlas. Vui lòng kiểm tra Network Access (IP Whitelist 0.0.0.0/0) hoặc MONGODB_URI trên Vercel.",
+      details: error.message
+    });
+  }
+});
 
 router.get("/state", getState);
 router.post("/record", recordSmoke);
